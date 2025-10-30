@@ -1,0 +1,26 @@
+{
+    "brcb": {
+        "LOGS": "/home/gary/workspace/logs/",
+        "DATASET": "/home/gary/workspace/Data/"
+    },
+    "a6k": {
+        "LOGS": "/home/ubuntu/Data/logs/",
+        "DATASET": "/home/ubuntu/Data/Dataset/paired_images/"
+    },
+    "runpod": {
+        "LOGS": "/workspace/logs/",
+        "DATASET": "/workspace/Data/"
+    },
+    "t09": {
+        "LOGS": "/media/ExtHDD01/logs/",
+        "DATASET": "/media/ExtHDD01/Dataset/paired_images/"
+    },
+    "t09b": {
+        "LOGS": "/media/ExtHDD01/logs/",
+        "DATASET": "/home/ghc/Dataset/paired_images/"
+    },
+    "aisr": {
+        "LOGS": "/media/ExtHDD01/logs/",
+        "DATASET": "/media/ghc/Ghc_data3/BRC/aisr/"
+    }
+}

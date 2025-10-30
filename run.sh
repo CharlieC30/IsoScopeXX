@@ -1,0 +1,1 @@
+NO_ALBUMENTATIONS_UPDATE=1 python train.py --jsn aisr_maxl1 --prj dist2/max10skip4
