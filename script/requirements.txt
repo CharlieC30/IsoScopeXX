@@ -1,0 +1,29 @@
+# IsoScopeXX Requirements
+# Install with: pip install -r requirements.txt
+# Note: PyTorch should be installed separately based on your CUDA version
+# Example: pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu118
+
+pytorch-lightning==1.9.5
+albumentations
+tifffile
+h5py
+numpy
+pillow
+python-dotenv
+pyyaml
+tqdm
+pytorch-msssim
+einops
+scikit-image
+matplotlib
+tensorboard
+requests
+
+# VQ-GAN (taming-transformers)
+taming-transformers-rom1504
+
+# Verification commands
+# PyTorch and CUDA:
+#   python -c "import torch; print(torch.__version__); print(torch.cuda.is_available())"
+# taming-transformers:
+#   python -c "from taming.modules.vqvae.quantize import VectorQuantizer2; print('taming-transformers OK')"
