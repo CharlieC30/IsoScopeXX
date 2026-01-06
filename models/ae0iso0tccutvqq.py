@@ -402,7 +402,7 @@ class GAN(BaseModel):
             self.generation(batch, deterministic=True)  # Deterministic for validation
             if self.epoch % 20 == 0:
                 # Debug: print filenames to see if this is validation data
-                print(f"[VAL DEBUG] batch_idx={batch_idx}, filenames={batch.get('filenames', 'N/A')}")
+                # print(f"[VAL DEBUG] batch_idx={batch_idx}, filenames={batch.get('filenames', 'N/A')}")
                 print_ori = np.concatenate([self.Xup[:, c, ::].squeeze().detach().cpu().numpy()
                                             for c in range(self.XupX.shape[1])], 1)
                 print_enc = np.concatenate([self.XupX[:, c, ::].squeeze().detach().cpu().numpy()
