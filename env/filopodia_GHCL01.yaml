@@ -26,7 +26,7 @@ train:
   models: ae0iso0tccutvqq
   cropz: 16
   cropsize: 128
-  env: aisr
+  env: GHCL01
   direction: x3d0
   dataset: filopodia
   lamb: 5

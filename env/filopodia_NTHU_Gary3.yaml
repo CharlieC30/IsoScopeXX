@@ -13,6 +13,7 @@ train:
   ndf: 64
   final: none
   batch_size: 1
+  test_batch_size: 1
   n_epochs: 10001
   epoch_save: 100
   lr: 0.0002
@@ -25,10 +26,10 @@ train:
   models: ae0iso0tccutvqq
   cropz: 16
   cropsize: 128
-  env: brcb
+  env: NTHU_Gary3
   direction: x3d0
-  dataset: X2527T102MM
-  lamb: 10
+  dataset: filopodia
+  lamb: 5
   nocut: false
   lbNCE: 0
   skipl1: 4
