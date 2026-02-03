@@ -9,6 +9,10 @@ NO_ALBUMENTATIONS_UPDATE=1 python train.py --yaml aisr --prj default/max10skip4 
 cd /home/aero/charliechang/projects/IsoScopeXX/
 NO_ALBUMENTATIONS_UPDATE=1 python train.py --yaml aisr --prj default/max10skip4 --env aisr --nocut --downbranch 2 --cropz 32
 
-# filopodia
+# filopodia on GHCL01
 cd /home/aero/charliechang/projects/IsoScopeXX/
 NO_ALBUMENTATIONS_UPDATE=1 python train.py --yaml filopodia --prj default/max10skip4 --env aisr --nocut --downbranch 2 --cropz 32
+
+# filopodia on NTHU_Gary3
+cd IsoScopeXX
+NO_ALBUMENTATIONS_UPDATE=1 python train.py --yaml filopodia --prj default/max10skip4 --env NTHU_Gary3 --nocut --downbranch 2 --cropz 32

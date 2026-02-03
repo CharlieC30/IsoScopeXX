@@ -29,7 +29,7 @@ train:
   env: aisr
   direction: x3d0
   dataset: filopodia
-  lamb: 10
+  lamb: 5
   nocut: false
   lbNCE: 0
   skipl1: 4

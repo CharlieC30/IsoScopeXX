@@ -1,7 +1,9 @@
 # IsoScopeXX Requirements
-# Install with: pip install -r requirements.txt
+# Create conda env: conda create -n isoscope python=3.10
 # Note: PyTorch should be installed separately based on your CUDA version
-# Example: pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu118
+# Example (on GHCL server): pip install torch==2.7.1 torchvision==0.22.1 torchaudio==2.7.1 --index-url https://download.pytorch.org/whl/cu118
+# Example (on NTHU server): pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https://download.pytorch.org/whl/cu128
+# Install with: pip install -r requirements.txt
 
 pytorch-lightning==1.9.5
 albumentations

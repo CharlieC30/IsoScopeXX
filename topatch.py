@@ -114,7 +114,7 @@ def z_rescale(xx, trd=6):
 if __name__ == "__main__":
     root = '/media/aero/HDD01/CharlieChang/Data/filopodia/'
     suffix = ''
-    npy0 = tiff.imread(root + '10X_G0431;6xGFP_incubator_10xSp_4d_Ch-GFP_G-ch-bio_SA635_1_Stitch.tif')
+    npy0 = tiff.imread(root + '10X_G0431;6xGFP_incubator_10xSp_4d_Ch-GFP_G-ch-bio_SA635_1_Stitch_crop2048.tif')
     #npy1 = tiff.imread(root + 'dist0.tif')
 
     #tif_to_patches([npy0, npy1],
@@ -124,7 +124,7 @@ if __name__ == "__main__":
     #               prefix='naivevmat1', ftr=-10, zrescale=None)
 
     tif_to_patches([npy0],
-                   destination=['filopodia_patches/'],
+                   destination=['filopodia_patches_crop2048/'],
                    dh=(64, 256, 256), step=(64, 256, 256), permute=None,
                    trd=(None, None), norm=('11', '11'),
                    prefix='', ftr=-10, zrescale=None, 
