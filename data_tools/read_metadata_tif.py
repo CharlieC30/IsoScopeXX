@@ -240,7 +240,7 @@ if __name__ == "__main__":
     main()
 
 
-# python script/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia/
-# python script/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia_tif/
-# python script/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia/sample.tif
-# python script/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia/10X_G0431\;6xGFP_incubator_10xSp_4d_Ch-GFP_G-ch-bio_SA635_2_Stitch.tif
+# python data_tools/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia/
+# python data_tools/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia_tif/
+# python data_tools/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia/sample.tif
+# python data_tools/read_metadata_tif.py /media/aero/HDD01/CharlieChang/Data/filopodia/10X_G0431\;6xGFP_incubator_10xSp_4d_Ch-GFP_G-ch-bio_SA635_2_Stitch.tif

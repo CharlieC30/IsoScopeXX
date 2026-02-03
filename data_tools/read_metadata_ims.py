@@ -215,5 +215,5 @@ if __name__ == "__main__":
     main()
 
 
-# python script/read_metadata_ims.py /media/aero/HDD01/CharlieChang/Data/filopodia_ims/
-# python script/read_metadata_ims.py /media/aero/HDD01/CharlieChang/Data/filopodia_ims/10X_G0431\;6xGFP_incubator_10xSp_4d_Ch-GFP_G-ch-bio_SA635_2_Stitch.ims
+# python data_tools/read_metadata_ims.py /media/aero/HDD01/CharlieChang/Data/filopodia_ims/
+# python data_tools/read_metadata_ims.py /media/aero/HDD01/CharlieChang/Data/filopodia_ims/10X_G0431\;6xGFP_incubator_10xSp_4d_Ch-GFP_G-ch-bio_SA635_2_Stitch.ims
