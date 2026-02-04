@@ -3,13 +3,14 @@ import argparse
 import torch.nn as nn
 from torch.utils.data import DataLoader
 import os, shutil, time, sys
+from datetime import datetime
 from tqdm import tqdm
 from dotenv import load_dotenv
 from utils.make_config import load_json, save_json
 import json
 import yaml
 import pytorch_lightning as pl
-from pytorch_lightning import loggers as pl_loggers
+from pytorch_lightning.loggers import TensorBoardLogger, MLFlowLogger
 from dataloader.data_multi import PairedImageDataset as Dataset
 from utils.get_args import get_args
 
@@ -98,12 +99,25 @@ if __name__ == '__main__':
                 pass
         print('Preloading time: ' + str(time.time() - tini))
 
-    # Logger
-    os.makedirs(os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'logs'), exist_ok=True)
-    logger = pl_loggers.TensorBoardLogger(os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'logs'))
+    # Logger - Both TensorBoard and MLflow with timestamp versioning
+    log_base = os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'logs')
 
-    # Trainer
-    checkpoints = os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'checkpoints')
+    # Create unique timestamp for this run (links everything together)
+    run_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    tb_logger = TensorBoardLogger(
+        save_dir=log_base,
+        name='TensorBoardLogger',
+        version=run_timestamp  # Use timestamp as version
+    )
+    mlf_logger = MLFlowLogger(
+        experiment_name=args.dataset,
+        run_name=f"{args.prj}_{run_timestamp}",  # Include timestamp in run name
+        tracking_uri=f"file:{os.path.join(log_base, 'MLFlowLogger')}"
+    )
+
+    # Checkpoints - linked to same timestamp
+    checkpoints = os.path.join(os.environ.get('LOGS'), args.dataset, args.prj, 'checkpoints', run_timestamp)
     os.makedirs(checkpoints, exist_ok=True)
 
     net = GAN(hparams=args, train_loader=train_loader, eval_loader=eval_loader, checkpoints=checkpoints)
@@ -111,7 +125,7 @@ if __name__ == '__main__':
     "Please use `Trainer(accelerator='gpu', devices=-1)` instead."
     trainer = pl.Trainer(gpus=-1, strategy='ddp_spawn',
                          max_epochs=args.n_epochs,  # progress_bar_refresh_rate=20,
-                         logger=logger,
+                         logger=[tb_logger, mlf_logger],  # Both TensorBoard and MLflow
                          enable_checkpointing=True, log_every_n_steps=100,
                          check_val_every_n_epoch=1, accumulate_grad_batches=2)
     if eval_loader is not None:

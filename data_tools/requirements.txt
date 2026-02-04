@@ -19,6 +19,7 @@ einops
 scikit-image
 matplotlib
 tensorboard
+mlflow
 requests
 
 # VQ-GAN (taming-transformers)

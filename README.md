@@ -17,6 +17,38 @@ This framework addresses critical challenges in expansion microscopy (ExM):
 - Scales to organ-level datasets  
 - Compatible with clinical biomarker discovery workflows  
 
+## Logging & Experiment Tracking
+
+This project uses both **TensorBoard** and **MLflow** for experiment tracking.
+
+### Log Structure
+```
+${LOGS}/${DATASET}/${PROJECT}/
+├── logs/
+│   ├── TensorBoardLogger/{timestamp}/   # TensorBoard logs
+│   └── MLFlowLogger/                     # MLflow logs
+├── checkpoints/{timestamp}/              # Model weights (linked to logs)
+└── 0.json                                # Hyperparameters
+```
+
+### Viewing Logs
+
+**TensorBoard:**
+```bash
+tensorboard --logdir /path/to/logs/TensorBoardLogger
+```
+
+**MLflow:**
+```bash
+mlflow ui --backend-store-uri /path/to/logs/MLFlowLogger --port 5000
+# Open: http://localhost:5000
+```
+
+### Timestamp Versioning
+- Each training run creates a unique timestamp (e.g., `20260204_160003`)
+- TensorBoard, MLflow run_name, and checkpoints all share the same timestamp
+- This links everything together and prevents overwrites across servers
+
 ## Configuration
 
 Edit `env/jsn/aisr.json` to configure training:
