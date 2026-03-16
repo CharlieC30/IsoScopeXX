@@ -31,6 +31,8 @@ def get_transforms(opt, additional_targets, need=('train', 'test')):
             A.Resize(opt.resize, opt.resize),
             A.augmentations.geometric.rotate.Rotate(limit=45, p=rotate_p),
             A.RandomCrop(height=opt.cropsize, width=opt.cropsize, p=1.),
+            #A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5), max_pixel_value=400),
+            #A.CLAHE(clip_limit=(1, 4), tile_grid_size=(8, 8), p=1.0),
         ]
         if getattr(opt, 'pixel_aug', False):
             train_transforms.extend([
