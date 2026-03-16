@@ -9,6 +9,7 @@ train:
   cropz: 16
   nm: "00"
   rotate: true
+  pixel_aug: true
   resize: 0
 
   # model

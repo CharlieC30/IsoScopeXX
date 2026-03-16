@@ -26,15 +26,19 @@ def get_transforms(opt, additional_targets, need=('train', 'test')):
     else:
         rotate_p = 0
     if 'train' in need:
-        transformations['train'] = A.Compose([
+        train_transforms = [
             A.CenterCrop(height=opt.precrop, width=opt.precrop, p=1.),
             A.Resize(opt.resize, opt.resize),
             A.augmentations.geometric.rotate.Rotate(limit=45, p=rotate_p),
             A.RandomCrop(height=opt.cropsize, width=opt.cropsize, p=1.),
-            #A.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5), max_pixel_value=400),
-            #A.CLAHE(clip_limit=(1, 4), tile_grid_size=(8, 8), p=1.0),
-            ToTensorV2(p=1.0),
-        ], p=1.0, additional_targets=additional_targets)
+        ]
+        if getattr(opt, 'pixel_aug', False):
+            train_transforms.extend([
+                A.RandomGamma(gamma_limit=(80, 120), p=0.5),
+                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+            ])
+        train_transforms.append(ToTensorV2(p=1.0))
+        transformations['train'] = A.Compose(train_transforms, p=1.0, additional_targets=additional_targets)
     if 'test' in need:
         transformations['test'] = A.Compose([
             A.Resize(opt.resize, opt.resize),
