@@ -19,6 +19,36 @@ from typing import Dict, List, Optional, Tuple, Union
 from functools import reduce
 
 
+class SafeRandomGamma(A.ImageOnlyTransform):
+    """Sign-preserving gamma correction that works with negative values."""
+    def __init__(self, gamma_limit=(80, 120), p=0.5):
+        super().__init__(p=p)
+        self.gamma_limit = gamma_limit
+
+    def apply(self, img, gamma=1.0, **params):
+        return np.sign(img) * np.power(np.abs(img), gamma)
+
+    def get_params(self):
+        return {'gamma': np.random.uniform(self.gamma_limit[0], self.gamma_limit[1]) / 100.0}
+
+
+class SafeRandomBrightnessContrast(A.ImageOnlyTransform):
+    """Brightness/contrast adjustment without clipping negative values."""
+    def __init__(self, brightness_limit=0.2, contrast_limit=0.2, p=0.5):
+        super().__init__(p=p)
+        self.brightness_limit = (-brightness_limit, brightness_limit) if isinstance(brightness_limit, (int, float)) else brightness_limit
+        self.contrast_limit = (-contrast_limit, contrast_limit) if isinstance(contrast_limit, (int, float)) else contrast_limit
+
+    def apply(self, img, brightness=0, contrast=0, **params):
+        return img * (1 + contrast) + brightness
+
+    def get_params(self):
+        return {
+            'brightness': np.random.uniform(*self.brightness_limit),
+            'contrast': np.random.uniform(*self.contrast_limit),
+        }
+
+
 def get_transforms(opt, additional_targets, need=('train', 'test')):
     transformations = {}
     if opt.rotate:
@@ -36,8 +66,8 @@ def get_transforms(opt, additional_targets, need=('train', 'test')):
         ]
         if getattr(opt, 'pixel_aug', False):
             train_transforms.extend([
-                A.RandomGamma(gamma_limit=(80, 120), p=0.5),
-                A.RandomBrightnessContrast(brightness_limit=0.2, contrast_limit=0.2, p=0.5),
+                SafeRandomGamma(gamma_limit=(80, 120), p=0.5),
+                SafeRandomBrightnessContrast(brightness_limit=0.1, contrast_limit=0.2, p=0.5),
             ])
         train_transforms.append(ToTensorV2(p=1.0))
         transformations['train'] = A.Compose(train_transforms, p=1.0, additional_targets=additional_targets)
