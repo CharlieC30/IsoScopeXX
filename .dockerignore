@@ -1,0 +1,47 @@
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+.claude/
+.ipynb_checkpoints/
+
+# Data and model artifacts
+*.tif
+*.pth
+*.png
+
+# Outputs
+out/
+logs/
+screenshots/
+dataset/
+result/
+outputs/
+forpaper/
+postprocessing/
+notinuse/
+submodels/
+models/old/
+Untitled/
+spec/
+
+# Docker
+Dockerfile
+docker-compose.yaml
+.dockerignore
+.env
+.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# OS
+.DS_Store
+.Python
+.neptune/

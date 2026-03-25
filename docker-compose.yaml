@@ -1,0 +1,51 @@
+services:
+  mlflow:
+    image: python:3.10-slim
+    container_name: isoscopexx-mlflow
+    command: >
+      bash -c "pip install mlflow &&
+      mlflow server
+      --backend-store-uri sqlite:////workspace/logs/${DATASET_NAME}/${PRJ}/logs/mlflow.db
+      --artifacts-destination /workspace/logs/${DATASET_NAME}/${PRJ}/logs/mlartifacts
+      --host 0.0.0.0 --port 5002"
+    ports:
+      - "5002:5002"
+    volumes:
+      - ${LOGS_PATH}:/workspace/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5002/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  training:
+    build:
+      context: .
+      args:
+        PYTORCH_TAG: ${PYTORCH_TAG:-2.7.1-cuda11.8-cudnn9-runtime}
+    container_name: isoscopexx-training
+    volumes:
+      - ${DATA_PATH}:/workspace/data
+      - ${LOGS_PATH}:/workspace/logs
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
+    command: >
+      python train.py
+      --yaml ${YAML_CONFIG:-filopodia_GHCL01}
+      --prj ${PRJ}
+      --env docker
+      ${EXTRA_TRAIN_ARGS:-}
+    profiles:
+      - train
