@@ -4,7 +4,7 @@ FROM pytorch/pytorch:${PYTORCH_TAG}
 
 WORKDIR /workspace
 
-# System dependencies (opencv-python requires these)
+# System dependencies (opencv-python requires)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/*

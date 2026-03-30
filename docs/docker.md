@@ -1,133 +1,79 @@
-# Docker Usage
+# Docker
 
 ## Prerequisites
 
-- [Docker Engine](https://docs.docker.com/engine/install/)
+- [Docker Engine](https://docs.docker.com/engine/install/) with Compose V2
 - [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-- NVIDIA driver compatible with your target CUDA version
+- NVIDIA driver compatible with the target CUDA version
 
-Verify GPU access:
-
-```bash
-docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi
-```
+<!-- ```bash
+docker run --rm --gpus all nvidia-smi
+``` -->
 
 ## Quick Start
 
 ```bash
-# 1. Create your .env file from the template
 cp .env.example .env
+# Edit .env with your paths and settings
 
-# 2. Edit .env with your machine's paths and experiment settings
-
-# 3. Build the training image
 docker compose build training
-
-# 4. Start MLflow tracking server
-docker compose up mlflow -d
-
-# 5. Run training
+docker compose --profile server up -d
 docker compose --profile train run training
 ```
 
-## Common Operations
+MLflow UI: http://localhost:5002
 
-### View MLflow UI (without training)
+## Deployment
 
-```bash
-docker compose up mlflow
-# Open http://localhost:5002 in your browser
-```
+Both services use Compose profiles and require `--profile` to start.
 
-### Run training
+### A. MLflow + Training on Same Machine
 
 ```bash
+docker compose --profile server up -d
 docker compose --profile train run training
 ```
 
-### Pass additional training arguments
+### B. MLflow Server Only
 
-Option A — set `EXTRA_TRAIN_ARGS` in `.env`:
+```bash
+docker compose --profile server up -d
+```
+
+Accessible at `http://<server-ip>:5002`.
+
+### C. Training Only (Remote MLflow)
+
+Set the remote URI in `.env`:
 
 ```env
-EXTRA_TRAIN_ARGS=--nocut --downbranch 2 --cropz 32
+EXTRA_TRAIN_ARGS=--tracking_uri http://<mlflow-server-ip>:5002
 ```
 
-Option B — override the command directly:
-
 ```bash
-docker compose run training python train.py \
-    --yaml aisr --prj my_experiment --env docker \
-    --nocut --downbranch 2 --cropz 32
-```
-
-### Switch experiments
-
-When changing `DATASET_NAME` or `PRJ`, restart the MLflow service:
-
-```bash
-# 1. Edit .env with new DATASET_NAME and/or PRJ
-# 2. Restart MLflow (its DB path depends on these values)
-docker compose down mlflow
-docker compose up mlflow -d
-# 3. Run training
+docker compose build training
 docker compose --profile train run training
 ```
 
-### View training logs
+## Configuration
 
-```bash
-# Follow logs in real time
-docker compose logs -f training
+All settings are in `.env`. See `.env.example` for available variables and defaults.
 
-# TensorBoard (from host)
-tensorboard --logdir ${LOGS_PATH}/${DATASET_NAME}/${PRJ}/logs/TensorBoardLogger
-```
-
-## CUDA Version
-
-The default build uses `pytorch/pytorch:2.7.1-cuda11.8-cudnn9-runtime`. To use a different CUDA version, edit `PYTORCH_TAG` in `.env`:
-
-```env
-# CUDA 11.8 (default)
-PYTORCH_TAG=2.7.1-cuda11.8-cudnn9-runtime
-
-# CUDA 12.8
-PYTORCH_TAG=2.8.0-cuda12.8-cudnn9-runtime
-```
-
-See all available tags at https://hub.docker.com/r/pytorch/pytorch/tags.
-
-Then rebuild:
+To change CUDA version, edit `PYTORCH_TAG` and rebuild:
 
 ```bash
 docker compose build training
 ```
 
-## Multi-GPU
-
-By default, all GPUs are available to the training container. To limit GPU access:
+To select specific GPUs:
 
 ```bash
 NVIDIA_VISIBLE_DEVICES=0,1 docker compose --profile train run training
 ```
 
-## Architecture
-
-```
-docker-compose.yaml
-├── mlflow service        (python:3.10-slim, long-running)
-│   ├── SQLite DB at      /workspace/logs/{dataset}/{prj}/logs/mlflow.db
-│   ├── Artifacts at      /workspace/logs/{dataset}/{prj}/logs/mlartifacts/
-│   └── Port 5002
-└── training service      (pytorch/pytorch, run-and-stop)
-    ├── Data from         /workspace/data  ← volume mount
-    ├── Logs to           /workspace/logs  ← volume mount
-    └── --env docker      (reads cfg/env.json "docker" entry)
-```
-
 ## Notes
 
-- The `out/` directory (debug TIF images) is inside the container and does not persist after the container stops. Checkpoints and logs are saved to mounted volumes and are not affected.
-- Git hash in MLflow tags will show `unknown` inside the container.
-- The training image is approximately 8-12 GB due to CUDA and PyTorch.
+- The MLflow server has no authentication. Use within a trusted network only.
+- If port 5002 is already in use on the host, change the port mapping in `docker-compose.yaml`: `"5003:5002"`. The container-internal port (5002) stays the same.
+- Switching experiments does not require restarting MLflow or rebuilding. Change `.env` and run training again.
+- The `out/` directory is inside the container and does not persist after the container stops. Checkpoints and logs are saved to mounted volumes.

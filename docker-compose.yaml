@@ -1,13 +1,15 @@
 services:
   mlflow:
-    image: python:3.10-slim
+    build:
+      context: .
+      dockerfile: Dockerfile.mlflow
     container_name: isoscopexx-mlflow
     command: >
-      bash -c "pip install mlflow &&
       mlflow server
-      --backend-store-uri sqlite:////workspace/logs/${DATASET_NAME}/${PRJ}/logs/mlflow.db
-      --artifacts-destination /workspace/logs/${DATASET_NAME}/${PRJ}/logs/mlartifacts
-      --host 0.0.0.0 --port 5002"
+      --backend-store-uri sqlite:////workspace/logs/mlflow/mlflow.db
+      --artifacts-destination /workspace/logs/mlflow/mlartifacts
+      --host 0.0.0.0 --port 5002
+      --disable-security-middleware
     ports:
       - "5002:5002"
     volumes:
@@ -19,12 +21,15 @@ services:
       retries: 3
       start_period: 30s
     restart: unless-stopped
+    profiles:
+      - server
 
   training:
     build:
       context: .
       args:
         PYTORCH_TAG: ${PYTORCH_TAG:-2.7.1-cuda11.8-cudnn9-runtime}
+    shm_size: '16g'
     container_name: isoscopexx-training
     volumes:
       - ${DATA_PATH}:/workspace/data
@@ -39,12 +44,13 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
+        required: false
     tty: true
     stdin_open: true
     command: >
       python train.py
-      --yaml ${YAML_CONFIG:-filopodia_GHCL01}
-      --prj ${PRJ}
+      --yaml ${YAML_CONFIG}
+      --prj ${PRJ:-default}
       --env docker
       ${EXTRA_TRAIN_ARGS:-}
     profiles:
