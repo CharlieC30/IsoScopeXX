@@ -95,7 +95,8 @@ LOGS=/path/to/logs
 mlflow server \
   --backend-store-uri sqlite:///${LOGS}/mlflow/mlflow.db \
   --artifacts-destination ${LOGS}/mlflow/mlartifacts \
-  --host 0.0.0.0 --port 5002
+  --host 0.0.0.0 --port 5002 \
+  --allowed-hosts "localhost:*,<server-ip>:*"
 ```
 
 Tracking URI priority: CLI `--tracking_uri` > `TRACKING_URI` in `cfg/env.json` > local SQLite.

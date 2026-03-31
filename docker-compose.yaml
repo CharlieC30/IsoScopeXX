@@ -9,9 +9,9 @@ services:
       --backend-store-uri sqlite:////workspace/logs/mlflow/mlflow.db
       --artifacts-destination /workspace/logs/mlflow/mlartifacts
       --host 0.0.0.0 --port 5002
-      --disable-security-middleware
+      --allowed-hosts "${MLFLOW_ALLOWED_HOSTS:-localhost:*,mlflow:*}"
     ports:
-      - "5002:5002"
+      - "5003:5002"
     volumes:
       - ${LOGS_PATH}:/workspace/logs
     healthcheck:
