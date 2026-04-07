@@ -37,6 +37,9 @@ submodels/
 models/old/
 Untitled/
 
+# Docker
+.env
+
 # Packaging
 .Python
 .neptune/
