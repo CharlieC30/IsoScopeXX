@@ -29,7 +29,7 @@ services:
       context: .
       args:
         PYTORCH_TAG: ${PYTORCH_TAG:-2.7.1-cuda11.8-cudnn9-runtime}
-    shm_size: '16g'
+    shm_size: '16g'  # PyTorch DataLoader shared memory
     container_name: isoscopexx-training
     volumes:
       - ${DATA_PATH}:/workspace/data
@@ -44,7 +44,7 @@ services:
     depends_on:
       mlflow:
         condition: service_healthy
-        required: false
+        required: false  # allow training without MLflow
     tty: true
     stdin_open: true
     command: >

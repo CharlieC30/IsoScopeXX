@@ -1,5 +1,14 @@
 # Docker
 
+## Overview
+
+The Docker setup provides two services managed by Compose profiles:
+
+- **mlflow** (profile: `server`): MLflow tracking server with SQLite backend
+- **training** (profile: `train`): GPU-enabled training container with PyTorch
+
+Each profile can be started independently. See Deployment for usage patterns.
+
 ## Prerequisites
 
 - [Docker Engine](https://docs.docker.com/engine/install/) with Compose V2
@@ -14,18 +23,16 @@ docker run --rm --gpus all nvidia-smi
 
 ```bash
 cp .env.example .env
-# Edit .env with your paths and settings
-
-docker compose build
-docker compose --profile server up -d
-docker compose --profile train run --rm training
+# edit .env with your paths and settings
 ```
+
+See Deployment for how to start each service.
 
 MLflow UI: http://localhost:5003
 
 ## Deployment
 
-Both services use Compose profiles and require `--profile` to start.
+Images are built automatically on first run. To rebuild after changing the Dockerfile or dependencies, see Configuration.
 
 ### A. MLflow + Training on Same Machine
 
@@ -51,7 +58,6 @@ EXTRA_TRAIN_ARGS=--tracking_uri http://<mlflow-server-ip>:5003
 ```
 
 ```bash
-docker compose build training
 docker compose --profile train run --rm training
 ```
 
@@ -89,12 +95,12 @@ The MLflow server has no authentication. Use within a trusted network only.
 # Stop MLflow server
 docker compose --profile server down
 
-# Remove leftover training containers 
+# Remove leftover training containers
 docker compose rm -f training
 ```
 
 ## Notes
 
-- The host port is 5003 (mapped from container-internal port 5002). If port 5003 conflicts, change the port mapping in `docker-compose.yaml` (e.g., `"5004:5002"`). The container-internal port stays the same.
-- Switching experiments does not require restarting MLflow or rebuilding. Change `.env` and run training again.
-- The `out/` directory is inside the container and does not persist after the container stops. Checkpoints and logs are saved to mounted volumes.
+- Host port is 5003, mapped from container port 5002. To use a different host port, edit the mapping in `docker-compose.yaml` (e.g., `"5004:5002"`).
+- Switching experiments does not require restarting MLflow or rebuilding. Edit `.env` and run training again.
+- `out/` is inside the container and does not persist. Checkpoints and logs are saved to mounted volumes.

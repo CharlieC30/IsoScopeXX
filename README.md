@@ -28,6 +28,8 @@ This framework addresses critical challenges in expansion microscopy (ExM):
 
 ## Getting Started
 
+### Local Installation
+
 ```bash
 # Create conda environment
 conda create -n isoscope python=3.10
@@ -42,6 +44,10 @@ pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 --index-url https
 # Install dependencies
 pip install -r requirements.txt
 ```
+
+### Docker
+
+For container-based setup with GPU support and integrated MLflow tracking, see [docs/docker.md](docs/docker.md).
 
 ## Training
 

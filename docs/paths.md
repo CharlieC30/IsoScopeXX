@@ -43,3 +43,14 @@ $LOGS/
 
 `{run_timestamp}` = `YYYYMMDD_HHMMSS`, shared across TensorBoard and checkpoints.
 
+## Docker
+
+With `--env docker`, paths resolve from the `docker` entry in `cfg/env.json`.
+Volume mounts are defined in `docker-compose.yaml`:
+
+| Host path (from `.env`) | Container path | Purpose |
+|-------------------------|----------------|---------|
+| `$DATA_PATH` | `/workspace/data` | Training datasets |
+| `$LOGS_PATH` | `/workspace/logs` | MLflow, TensorBoard, checkpoints |
+
+MLflow tracking URI inside the container: `http://mlflow:5002` (Docker internal DNS).

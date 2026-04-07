@@ -4,7 +4,7 @@ FROM pytorch/pytorch:${PYTORCH_TAG}
 
 WORKDIR /workspace
 
-# System dependencies (opencv-python requires)
+# opencv-python runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libgl1-mesa-glx libglib2.0-0 \
  && rm -rf /var/lib/apt/lists/*
@@ -20,8 +20,7 @@ COPY . .
 RUN python -c "\
 from taming.modules.losses.lpips import LPIPS; \
 model = LPIPS(); \
-print('LPIPS VGG weights downloaded')" \
-    || echo "WARNING: LPIPS pre-download skipped"
+print('LPIPS VGG weights downloaded')"
 
 # Environment
 ENV NO_ALBUMENTATIONS_UPDATE=1
