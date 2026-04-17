@@ -178,27 +178,41 @@ class Generator(nn.Module):
         self.decoder = nn.Sequential(self.up3, self.conv5, self.up2, self.conv6, self.up1)
 
     def forward(self, x, method=None):
-        # x (1, C, X, Y, Z)
+        # x: (B, C, H, W, D) -- B preserved throughout (for method='decode' directly)
         if method != 'decode':
-            x = x.permute(4, 1, 2, 3, 0)[:, :, :, :, 0]  # (Z, C, X, Y)
+            # Non-decode path: flatten B*D for 2D encoder, B preserved via reshape
+            B, C, H, W, D = x.shape
+            x = x.permute(0, 4, 1, 2, 3).reshape(B * D, C, H, W)
+            # (B*D, C, H, W) -- D-slices flattened into 2D batch dim
             feat = []
             for i in range(len(self.encoder)):
                 if i > 0:
-                    x = x.permute(1, 2, 3, 0).unsqueeze(0)  # (1, C, X, Y, Z)
+                    # reshape back to 5D for MaxPool3d (which pools H, W, D)
+                    BD, C_cur, H_cur, W_cur = x.shape
+                    D_cur = BD // B
+                    x = x.reshape(B, D_cur, C_cur, H_cur, W_cur).permute(0, 2, 3, 4, 1)
+                    # (B, C, H_cur, W_cur, D_cur)
                     x = self.max3_pool(x)
-                    x = x.squeeze(0).permute(3, 0, 1, 2)  # (Z, C, X, Y)
+                    # pools all 3 spatial dims by 2: (B, C, H/2, W/2, D/2)
+                    _, C_cur, H_cur, W_cur, D_cur = x.shape
+                    x = x.permute(0, 4, 1, 2, 3).reshape(B * D_cur, C_cur, H_cur, W_cur)
+                    # back to 4D for 2D conv
                 x = self.encoder[i](x)
-                feat.append(x.permute(1, 2, 3, 0).unsqueeze(0))
+                BD_f, C_f, H_f, W_f = x.shape
+                D_f = BD_f // B
+                feat.append(x.reshape(B, D_f, C_f, H_f, W_f).permute(0, 2, 3, 4, 1))
+                # feat[i]: (B, C, H_i, W_i, D_i) -- skip connection as 5D with B preserved
             if method == 'encode':
                 return feat
-            #print(x.shape)
-            x = x.permute(1, 2, 3, 0).unsqueeze(0)  # (1, C, X, Y, Z)
-            #print(x.shape)
+            BD_f, C_f, H_f, W_f = x.shape
+            D_f = BD_f // B
+            x = x.reshape(B, D_f, C_f, H_f, W_f).permute(0, 2, 3, 4, 1)
+            # (B, C, H_enc, W_enc, D_enc) -- final encoder output as 5D with B preserved
+        # decoder input: (B, C, H_in, W_in, D_in) -- 3D deconv with 3 levels of 2x upsample
         x = self.decoder(x)
-        #print(x.shape)
         x70 = self.conv7_k(x)
         x71 = self.conv7_g(x)
-        #print(x70.shape)
+        # output: (B, 1, H, W, D) -- two output heads
 
         return {'out0': x70, 'out1': x71}
 

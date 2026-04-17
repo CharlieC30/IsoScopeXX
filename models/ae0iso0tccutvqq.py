@@ -194,24 +194,36 @@ class GAN(BaseModel):
         return x
 
     def adv_loss_six_way(self, x, net_d, truth):
+        # x: (B, C, H, W, D) -- flatten 6 orthogonal 2D views across batch (B preserved)
+        B, C, H, W, D = x.shape
+        view1 = x.permute(0, 2, 1, 4, 3).reshape(B * H, C, D, W)
+        print(f'[BATCH-DEBUG] adv_loss_six_way: input={tuple(x.shape)}, view1={tuple(view1.shape)}, truth={truth}')  # TEMP DEBUG - remove after verify
         loss = 0
-        loss += self.add_loss_adv(a=x.permute(2, 1, 4, 3, 0)[:, :, :, :, 0],  # (X, C, Z, Y)
+        # (B*H, C, D, W) -- H slices of DW plane across batch
+        loss += self.add_loss_adv(a=view1,
                                   net_d=net_d, truth=truth)
-        loss += self.add_loss_adv(a=x.permute(2, 1, 3, 4, 0)[:, :, :, :, 0],  # (X, C, Y, Z)
+        # (B*H, C, W, D) -- H slices of WD plane across batch
+        loss += self.add_loss_adv(a=x.permute(0, 2, 1, 3, 4).reshape(B * H, C, W, D),
                                   net_d=net_d, truth=truth)
-        loss += self.add_loss_adv(a=x.permute(3, 1, 4, 2, 0)[:, :, :, :, 0],  # (Y, C, Z, X)
+        # (B*W, C, D, H) -- W slices of DH plane across batch
+        loss += self.add_loss_adv(a=x.permute(0, 3, 1, 4, 2).reshape(B * W, C, D, H),
                                   net_d=net_d, truth=truth)
-        loss += self.add_loss_adv(a=x.permute(3, 1, 2, 4, 0)[:, :, :, :, 0],  # (Y, C, X, Z)
+        # (B*W, C, H, D) -- W slices of HD plane across batch
+        loss += self.add_loss_adv(a=x.permute(0, 3, 1, 2, 4).reshape(B * W, C, H, D),
                                   net_d=net_d, truth=truth)
-        loss += self.add_loss_adv(a=x.permute(4, 1, 2, 3, 0)[:, :, :, :, 0],  # (Z, C, X, Y)
+        # (B*D, C, H, W) -- D slices of HW plane across batch
+        loss += self.add_loss_adv(a=x.permute(0, 4, 1, 2, 3).reshape(B * D, C, H, W),
                                   net_d=net_d, truth=truth)
-        loss += self.add_loss_adv(a=x.permute(4, 1, 3, 2, 0)[:, :, :, :, 0],  # (Z, C, Y, X)
+        # (B*D, C, W, H) -- D slices of WH plane across batch
+        loss += self.add_loss_adv(a=x.permute(0, 4, 1, 3, 2).reshape(B * D, C, W, H),
                                   net_d=net_d, truth=truth)
         loss = loss / 6
         return loss
 
     def get_xy_plane(self, x):
-        return x.permute(4, 1, 2, 3, 0)[::1, :, :, :, 0]
+        # x: (B, C, H, W, D) -> (B*D, C, H, W) -- all D slices of HW plane across batch
+        B, C, H, W, D = x.shape
+        return x.permute(0, 4, 1, 2, 3).reshape(B * D, C, H, W)
 
     def generation(self, batch, deterministic=False):
         if self.hparams.cropz > 0:
@@ -246,29 +258,47 @@ class GAN(BaseModel):
             self.oriX = batch['img'][0]  # (B, C, X, Y, Z) # original
 
         # VQGAN forward pass
-        input_slice = self.oriX.permute(4, 1, 2, 3, 0)[:, :, :, :, 0]  # (Z, C, X, Y)
+        # Flatten B and D so 2D VQGAN processes B*D slices; B is preserved via reshape (not dropped)
+        B, C_in, H, W, D_in = self.oriX.shape
+        input_slice = self.oriX.permute(0, 4, 1, 2, 3).reshape(B * D_in, C_in, H, W)
+        # (B*D, C, H, W) -- D-slices flattened into 2D batch dim
+        print(f'[BATCH-DEBUG] input_slice: B={B}, D_in={D_in}, shape={tuple(input_slice.shape)}')  # TEMP DEBUG - remove after verify
         # Make sure input requires gradients if we're training
         if self.training:
             input_slice = input_slice.requires_grad_(True)
 
         self.reconstructions, self.qloss, _, self.hz, quant = self.forward(input_slice, return_pred_indices=False)
+        # reconstructions, quant: (B*D, ..., H/8, W/8)
 
         if self.hparams.downbranch > 1:
-            quant = quant.permute(1, 2, 3, 0).unsqueeze(0)  # (1, C, X, Y, Z)
-            quant = nn.MaxPool3d((1, 1, self.hparams.downbranch))(quant)  # extra downsample, (1, C, X, Y, Z/2)
-            quant = quant.permute(4, 1, 2, 3, 0)[:, :, :, :, 0]  # (Z, C, X, Y)
+            # (B*D, embed_dim, H/8, W/8) -> (B, embed_dim, H/8, W/8, D) for MaxPool3d on D axis
+            BD_q, C_q, H_q, W_q = quant.shape
+            D_cur = BD_q // B
+            quant = quant.reshape(B, D_cur, C_q, H_q, W_q).permute(0, 2, 3, 4, 1)
+            quant = nn.MaxPool3d((1, 1, self.hparams.downbranch))(quant)
+            # (B, embed_dim, H/8, W/8, D/downbranch)
+            D_cur = quant.shape[-1]
+            quant = quant.permute(0, 4, 1, 2, 3).reshape(B * D_cur, C_q, H_q, W_q)
+            # back to 4D for VQGAN decoder
 
         if self.hparams.resizebranch != 1:
-            quant = quant.permute(1, 2, 3, 0).unsqueeze(0)  # (1, C, X, Y, Z)
-            quant = nn.Upsample(scale_factor=(1, 1, self.hparams.resizebranch), mode='trilinear')(
-                quant)  # extra downsample, (1, C, X, Y, Z/2)
-            quant = quant.permute(4, 1, 2, 3, 0)[:, :, :, :, 0]  # (Z, C, X, Y)
+            BD_q, C_q, H_q, W_q = quant.shape
+            D_cur = BD_q // B
+            quant = quant.reshape(B, D_cur, C_q, H_q, W_q).permute(0, 2, 3, 4, 1)
+            quant = nn.Upsample(scale_factor=(1, 1, self.hparams.resizebranch), mode='trilinear')(quant)
+            D_cur = quant.shape[-1]
+            quant = quant.permute(0, 4, 1, 2, 3).reshape(B * D_cur, C_q, H_q, W_q)
 
-        quant = self.decoder.conv_in(quant)  # (16, 256, 16, 16)
-        quant = quant.permute(1, 2, 3, 0).unsqueeze(0)  # (1, C, X, Y, Z)
+        quant = self.decoder.conv_in(quant)
+        # (B*D, 256, H/8, W/8) -> (B, 256, H/8, W/8, D) for 3D generator (B preserved)
+        BD_f, C_f, H_f, W_f = quant.shape
+        D_final = BD_f // B
+        quant = quant.reshape(B, D_final, C_f, H_f, W_f).permute(0, 2, 3, 4, 1)
+        print(f'[BATCH-DEBUG] net_g input: shape={tuple(quant.shape)}')  # TEMP DEBUG - remove after verify
 
         self.XupX = self.net_g(quant, method='decode')['out0']
-        self.Xup = self.upsample(self.oriX)  # (B, C, X, Y, Z)
+        self.Xup = self.upsample(self.oriX)  # (B, C, H, W, D)
+        print(f'[BATCH-DEBUG] XupX: shape={tuple(self.XupX.shape)}, Xup: shape={tuple(self.Xup.shape)}')  # TEMP DEBUG - remove after verify
 
         #print('reconstructions size', self.reconstructions.shape)
         #print('hbranch size', hbranch.shape)
@@ -299,11 +329,11 @@ class GAN(BaseModel):
                                                          how=self.hparams.l1how),
                                    b=self.oriX[:, :, :, :, ::self.hparams.skipl1])
 
-        # ms_ssim in ZY
+        # ms_ssim in ZY: flatten B and H for (B*H, C, D, W) 2D comparison
         if self.hparams.lbm_ms_ssim > 0:
-        # (1, C, X, Y, Z)
-            loss_ms_ssim = 1 - ms_ssim(self.XupX.permute(2, 1, 4, 3, 0)[:, :, :, :, 0],  # (X, C, Z, Y)
-                                    self.Xup.permute(2, 1, 4, 3, 0)[:, :, :, :, 0],  # (X, C, Z, Y)
+            B_ms, C_ms, H_ms, W_ms, D_ms = self.XupX.shape
+            loss_ms_ssim = 1 - ms_ssim(self.XupX.permute(0, 2, 1, 4, 3).reshape(B_ms * H_ms, C_ms, D_ms, W_ms),
+                                    self.Xup.permute(0, 2, 1, 4, 3).reshape(B_ms * H_ms, C_ms, D_ms, W_ms),
                                     data_range=2.0,
                                     size_average=True,
                                     win_size=7,  # Smaller window
@@ -316,9 +346,12 @@ class GAN(BaseModel):
         loss_dict['l1'] = loss_l1
         loss_g += loss_l1 * self.hparams.lamb
 
-        oriXpermute = self.oriX.permute(4, 1, 2, 3, 0)[:, :, :, :, 0]
+        # VQGAN loss needs 2D slices; flatten B and D so B is preserved
+        B_o, C_o, H_o, W_o, D_o = self.oriX.shape
+        oriXpermute = self.oriX.permute(0, 4, 1, 2, 3).reshape(B_o * D_o, C_o, H_o, W_o)
         if self.hparams.tc:
-            oriXpermute = self.oriX.permute(4, 1, 2, 3, 0)[:, :1, :, :, 0]
+            oriXpermute = self.oriX[:, :1].permute(0, 4, 1, 2, 3).reshape(B_o * D_o, 1, H_o, W_o)
+        print(f'[BATCH-DEBUG] backward_g VQGAN loss: oriXpermute={tuple(oriXpermute.shape)}, reconstructions={tuple(self.reconstructions.shape)}')  # TEMP DEBUG - remove after verify
 
         # VQGAN loss (different from KL autoencoder)
         aeloss, log_dict_ae = self.loss(
@@ -342,8 +375,10 @@ class GAN(BaseModel):
             # feat q - use stored hz from generation
             feat_q = self.hz
 
-            # feat k - encode generated output
-            input_slice_k = self.XupX.permute(4, 1, 2, 3, 0)[4::8, :, :, :, 0]  # (Z, C, X, Y)
+            # feat k - encode generated output; every 8th D slice, flatten (B, D_sub) into batch dim
+            _, C_k, H_k, W_k, _ = self.XupX.shape
+            input_slice_k = self.XupX.permute(0, 4, 1, 2, 3)[:, 4::8].reshape(-1, C_k, H_k, W_k)
+            # (B*D_sampled, C, H, W) -- B preserved
             _, _, _, _, feat_k = self.encode(input_slice_k)
 
             feat_k_pool, sample_ids = self.netF(feat_k, self.hparams.num_patches, None)
@@ -370,9 +405,11 @@ class GAN(BaseModel):
         loss_dict['dxx_x'] = dxx + dx
         loss_d += (dxx + dx) * self.hparams.adv
 
-        oriXpermute = self.oriX.permute(4, 1, 2, 3, 0)[:, :, :, :, 0]
+        # VQGAN disc loss needs 2D slices; flatten B and D so B is preserved
+        B_o, C_o, H_o, W_o, D_o = self.oriX.shape
+        oriXpermute = self.oriX.permute(0, 4, 1, 2, 3).reshape(B_o * D_o, C_o, H_o, W_o)
         if self.hparams.tc:
-            oriXpermute = self.oriX.permute(4, 1, 2, 3, 0)[:, :1, :, :, 0]
+            oriXpermute = self.oriX[:, :1].permute(0, 4, 1, 2, 3).reshape(B_o * D_o, 1, H_o, W_o)
 
         # VQGAN discriminator loss
         discloss, log_dict_disc = self.loss(

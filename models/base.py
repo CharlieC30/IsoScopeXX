@@ -329,9 +329,9 @@ class BaseModel(pl.LightningModule):
         self.reset_metrics()
 
         if self.epoch % 5 == 0 and hasattr(self, 'train_Xup') and hasattr(self, 'train_XupX') and self.trainer.is_global_zero:
-            # (B, C, X, Y, Z) - Use stored training data (not validation data)
-            print_ori = np.concatenate([self.train_Xup[:, c, ::].squeeze().detach().cpu().numpy() for c in range(self.train_XupX.shape[1])], 1)
-            print_enc = np.concatenate([self.train_XupX[:, c, ::].squeeze().detach().cpu().numpy() for c in range(self.train_Xup.shape[1])], 1)
+            # train_Xup, train_XupX: (B, C, H, W, D) -- take B=0 explicitly so B>1 doesn't break the GIF
+            print_ori = np.concatenate([self.train_Xup[0, c].detach().cpu().numpy() for c in range(self.train_XupX.shape[1])], 1)
+            print_enc = np.concatenate([self.train_XupX[0, c].detach().cpu().numpy() for c in range(self.train_Xup.shape[1])], 1)
             concat_arr = np.concatenate([print_ori, print_enc], 2)
             self._log_gif_artifact(concat_arr, 'train')
 
