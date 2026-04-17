@@ -197,7 +197,6 @@ class GAN(BaseModel):
         # x: (B, C, H, W, D) -- flatten 6 orthogonal 2D views across batch (B preserved)
         B, C, H, W, D = x.shape
         view1 = x.permute(0, 2, 1, 4, 3).reshape(B * H, C, D, W)
-        print(f'[BATCH-DEBUG] adv_loss_six_way: input={tuple(x.shape)}, view1={tuple(view1.shape)}, truth={truth}')  # TEMP DEBUG - remove after verify
         loss = 0
         # (B*H, C, D, W) -- H slices of DW plane across batch
         loss += self.add_loss_adv(a=view1,
@@ -262,7 +261,6 @@ class GAN(BaseModel):
         B, C_in, H, W, D_in = self.oriX.shape
         input_slice = self.oriX.permute(0, 4, 1, 2, 3).reshape(B * D_in, C_in, H, W)
         # (B*D, C, H, W) -- D-slices flattened into 2D batch dim
-        print(f'[BATCH-DEBUG] input_slice: B={B}, D_in={D_in}, shape={tuple(input_slice.shape)}')  # TEMP DEBUG - remove after verify
         # Make sure input requires gradients if we're training
         if self.training:
             input_slice = input_slice.requires_grad_(True)
@@ -294,11 +292,9 @@ class GAN(BaseModel):
         BD_f, C_f, H_f, W_f = quant.shape
         D_final = BD_f // B
         quant = quant.reshape(B, D_final, C_f, H_f, W_f).permute(0, 2, 3, 4, 1)
-        print(f'[BATCH-DEBUG] net_g input: shape={tuple(quant.shape)}')  # TEMP DEBUG - remove after verify
 
         self.XupX = self.net_g(quant, method='decode')['out0']
         self.Xup = self.upsample(self.oriX)  # (B, C, H, W, D)
-        print(f'[BATCH-DEBUG] XupX: shape={tuple(self.XupX.shape)}, Xup: shape={tuple(self.Xup.shape)}')  # TEMP DEBUG - remove after verify
 
         #print('reconstructions size', self.reconstructions.shape)
         #print('hbranch size', hbranch.shape)
@@ -351,7 +347,6 @@ class GAN(BaseModel):
         oriXpermute = self.oriX.permute(0, 4, 1, 2, 3).reshape(B_o * D_o, C_o, H_o, W_o)
         if self.hparams.tc:
             oriXpermute = self.oriX[:, :1].permute(0, 4, 1, 2, 3).reshape(B_o * D_o, 1, H_o, W_o)
-        print(f'[BATCH-DEBUG] backward_g VQGAN loss: oriXpermute={tuple(oriXpermute.shape)}, reconstructions={tuple(self.reconstructions.shape)}')  # TEMP DEBUG - remove after verify
 
         # VQGAN loss (different from KL autoencoder)
         aeloss, log_dict_ae = self.loss(
